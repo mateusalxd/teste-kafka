@@ -6,7 +6,10 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="servico-reposicao" />
         <module name="gerador-ordem" />
+        <module name="servico-reserva" />
+        <module name="servico-nota" />
       </profile>
     </annotationProcessing>
   </component>

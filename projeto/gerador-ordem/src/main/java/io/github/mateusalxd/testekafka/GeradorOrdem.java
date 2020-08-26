@@ -8,30 +8,30 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.UUID;
 
 public class GeradorOrdem {
 
     public static void main(String[] args) {
-        var produtor = new KafkaProducer<String, String>(propriedades());
-        try {
+        try (var produtor = new KafkaProducer<String, String>(propriedades())) {
             var produtos = new String[][]{
-                    {"Arroz", "18.5"},
-                    {"Feijão", "6.49"},
-                    {"Óleo", "4.90"},
-                    {"Molho de Tomate", "2.65"},
-                    {"Açúcar", "2.59"},
-                    {"Sorvete", "28.90"},
-                    {"Sal refinado", "2.65"},
+                    {"1", "Arroz", "18.5"},
+                    {"2", "Feijão", "6.49"},
+                    {"3", "Óleo", "4.90"},
+                    {"4", "Molho de Tomate", "2.65"},
+                    {"5", "Açúcar", "2.59"},
+                    {"6", "Sorvete", "28.90"},
+                    {"7", "Sal refinado", "2.65"},
             };
 
-            for (int i = 1; i <= 10; i++) {
+            for (int i = 1; i <= 50; i++) {
                 var resumoOrdem = new HashMap<Integer, Integer>();
                 var numeroProdutos = (int) (Math.random() * 20 + 1);
 
                 for (int x = 0; x < numeroProdutos; x++) {
                     var posicaoProduto = (int) (Math.random() * 7);
                     if (resumoOrdem.containsKey(posicaoProduto)) {
-                        var quantidade = resumoOrdem.get(posicaoProduto).intValue();
+                        var quantidade = resumoOrdem.get(posicaoProduto);
                         resumoOrdem.replace(posicaoProduto, quantidade + 1);
                     } else {
                         resumoOrdem.put(posicaoProduto, 1);
@@ -41,32 +41,29 @@ public class GeradorOrdem {
                 var ordemCompleta = resumoOrdem.entrySet().stream()
                         .map(item -> {
                             var produto = produtos[item.getKey()];
-                            return String.format("%s;%s;%s", produto[0], produto[1], item.getValue());
+                            return String.format("%s;%s;%s;%s", produto[0], produto[1], produto[2], item.getValue());
                         }).reduce("", (anterior, atual) -> {
                             if (anterior.isEmpty())
                                 return atual;
                             return String.format("%s|%s", anterior, atual);
                         });
 
-                var registro = new ProducerRecord<String, String>("NOVA_ORDEM", String.valueOf(i), ordemCompleta);
+                var registro = new ProducerRecord<>("NOVA_ORDEM", UUID.randomUUID().toString(), ordemCompleta);
                 Callback retorno = (resultado, erro) -> {
                     if (erro != null)
                         erro.printStackTrace();
 
-                    System.out.println(
-                            String.format("%s::%s::%s::%s",
-                                    resultado.topic(),
-                                    resultado.partition(),
-                                    resultado.offset(),
-                                    resultado.timestamp()));
+                    System.out.printf("%s::%s::%s::%s%n",
+                            resultado.topic(),
+                            resultado.partition(),
+                            resultado.offset(),
+                            resultado.timestamp());
                 };
                 produtor.send(registro, retorno).get();
-                Thread.sleep((int) (Math.random() * 5 + 1) * 1000);
+                Thread.sleep((int) (Math.random() * 800 + 100));
             }
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            produtor.close();
         }
     }
 
